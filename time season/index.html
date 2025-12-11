@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Winter Season Countdown</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Archivo:wght@500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --ink: #ff6a6a;
+        }
+        * { box-sizing: border-box; }
+        html, body { height: 100%; }
+        body {
+            margin: 0;
+            position: relative;
+            overflow: hidden;
+            font-family: 'Archivo', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            color: var(--ink);
+            background: #f2e6d4;
+        }
+        .bg {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+            z-index: -2;
+        }
+        body::after {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(242, 230, 212, 0.16) 0%, rgba(242, 230, 212, 0.24) 40%, rgba(242, 230, 212, 0.32) 100%);
+            pointer-events: none;
+            z-index: -1;
+        }
+        .timer-box {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: clamp(0.5rem, 1.2vw, 0.9rem);
+            text-align: center;
+            color: var(--ink);
+            text-shadow: 0 2px 12px rgba(242, 230, 212, 0.9);
+            pointer-events: none;
+            padding: clamp(0.35rem, 1vw, 0.8rem);
+        }
+        .timer {
+            display: flex;
+            gap: clamp(1.1rem, 2.5vw, 2rem);
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .time-segment {
+            min-width: clamp(90px, 13vw, 140px);
+            text-align: center;
+        }
+        .time-value {
+            font-family: 'Playfair Display', 'Times New Roman', serif;
+            font-size: clamp(2.6rem, 4.5vw, 4rem);
+            letter-spacing: 0.1em;
+        }
+        .time-label {
+            margin-top: 0.25rem;
+            font-size: clamp(0.75rem, 1.2vw, 1rem);
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+        }
+        @media (max-width: 720px) {
+            .timer-box {
+                padding: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <img src="winter-coming.png" alt="Winter Coming poster" class="bg">
+    <div class="timer-box" id="timer-box">
+        <div class="timer" aria-live="polite">
+            <div class="time-segment">
+                <div class="time-value" data-unit="days">00</div>
+                <div class="time-label">Days</div>
+            </div>
+            <div class="time-segment">
+                <div class="time-value" data-unit="hours">00</div>
+                <div class="time-label">Hours</div>
+            </div>
+            <div class="time-segment">
+                <div class="time-value" data-unit="minutes">00</div>
+                <div class="time-label">Minutes</div>
+            </div>
+            <div class="time-segment">
+                <div class="time-value" data-unit="seconds">00</div>
+                <div class="time-label">Seconds</div>
+            </div>
+        </div>
+    </div>
+    <script>
+        (function () {
+            const units = ['days', 'hours', 'minutes', 'seconds'];
+            const els = Object.fromEntries(units.map(unit => [unit, document.querySelector(`[data-unit="${unit}"]`)]));
+            const timerBox = document.getElementById('timer-box');
+
+            // Original artwork size and the cream box area inside it (px)
+            const DESIGN = { width: 1920, height: 1080 };
+            // Adjust these if you need nudging; currently shifted slightly left
+            const BOX = { left: 620, top: 640, right: 1650, bottom: 830 };
+
+            function positionTimerBox() {
+                const vw = window.innerWidth;
+                const vh = window.innerHeight;
+                const scale = Math.max(vw / DESIGN.width, vh / DESIGN.height);
+                const drawnWidth = DESIGN.width * scale;
+                const drawnHeight = DESIGN.height * scale;
+                const offsetX = (vw - drawnWidth) / 2;
+                const offsetY = (vh - drawnHeight) / 2;
+
+                timerBox.style.left = `${BOX.left * scale + offsetX}px`;
+                timerBox.style.top = `${BOX.top * scale + offsetY}px`;
+                timerBox.style.width = `${(BOX.right - BOX.left) * scale}px`;
+                timerBox.style.height = `${(BOX.bottom - BOX.top) * scale}px`;
+            }
+
+            function nextSaturdaySix() {
+                const now = new Date();
+                const target = new Date(now);
+                const day = now.getDay(); // Sunday = 0 ... Saturday = 6
+                let deltaDays = (6 - day + 7) % 7;
+
+                const sixAMToday = new Date(now);
+                sixAMToday.setHours(6, 0, 0, 0);
+
+                if (deltaDays === 0 && now <= sixAMToday) {
+                    deltaDays = 0;
+                } else if (deltaDays === 0) {
+                    deltaDays = 7;
+                }
+
+                target.setDate(now.getDate() + deltaDays);
+                target.setHours(6, 0, 0, 0);
+                return target;
+            }
+
+            let targetTime = nextSaturdaySix();
+
+            function updateCountdown() {
+                const now = new Date();
+                if (now > targetTime) {
+                    targetTime = nextSaturdaySix();
+                }
+
+                const diff = Math.max(0, targetTime - now);
+                const totalSeconds = Math.floor(diff / 1000);
+                const days = Math.floor(totalSeconds / 86400);
+                const hours = Math.floor((totalSeconds % 86400) / 3600);
+                const minutes = Math.floor((totalSeconds % 3600) / 60);
+                const seconds = totalSeconds % 60;
+
+                els.days.textContent = String(days).padStart(2, '0');
+                els.hours.textContent = String(hours).padStart(2, '0');
+                els.minutes.textContent = String(minutes).padStart(2, '0');
+                els.seconds.textContent = String(seconds).padStart(2, '0');
+            }
+
+            positionTimerBox();
+            updateCountdown();
+            window.addEventListener('resize', positionTimerBox);
+            window.addEventListener('orientationchange', positionTimerBox);
+            setInterval(updateCountdown, 1000);
+        })();
+    </script>
+</body>
+</html>
